@@ -1,17 +1,12 @@
 import ynab
-
-import secrets
-
-configuration = ynab.Configuration(
-    access_token=secrets.ACCESS_TOKEN
-)
+import secrets_rs
 
 
 class YNABClient:
     def __init__(self, access_token=None):
         """Initialize YNAB API Client."""
         self.configuration = ynab.Configuration(
-            access_token=secrets.ACCESS_TOKEN
+            access_token=secrets_rs.ACCESS_TOKEN
         )
 
     def get_budgets(self):
@@ -27,7 +22,7 @@ class YNABClient:
 
     def get_transactions(self, budget_id):
         """Fetch transactions for a given budget ID"""
-        with ynab.ApiClient(configuration) as api_client:
+        with ynab.ApiClient(self.configuration) as api_client:
             transactions_api = ynab.TransactionsApi(api_client)
             try:
                 transact_response = transactions_api.get_transactions(budget_id)
@@ -56,7 +51,7 @@ if __name__ == "__main__":
     for budget in budgets:
         print(f"Budget: {budget.name}")
     # Fetch transactions for a specific budget by name
-    budget_id = secrets.BANANA_STAND_ID
+    budget_id = secrets_rs.BANANA_STAND_ID
     if budget_id:
         transactions = ynab_client.get_transactions(budget_id)
         for transaction in transactions[:5]:  # Limit output for now
