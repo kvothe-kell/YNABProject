@@ -131,3 +131,5 @@ if __name__ == "__main__":
         accounts = ynab_client.get_accounts(budget_id)
         for account in accounts:
             print(f"Account: {account.name} (Balance: {account.balance})")
+
+# yas
