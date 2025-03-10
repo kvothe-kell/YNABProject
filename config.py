@@ -1,18 +1,23 @@
+# Third-Party Imports
 from data import database
-from dash import callback_context
-from flask_caching import Cache
 from sqlalchemy import create_engine
 import pandas as pd
+from flask_caching import Cache
 
-# Caching example to prevent redundant queries
-cache = Cache(config={"CACHE_TYPE": 'simple'})
+# Create a cache instance
+cache = Cache()
+
+
+def init_cache(app):
+    """Call this function in the main app file to initialize caching."""
+    cache.init_app(app, config={"CACHE_TYPE": "SimpleCache"})  # Note: SimpleCache in newer versions
 
 
 def fetch_transactions():
-    if callback_context.triggered:  # Check if this was triggered by an event
-        return cache.get("transactions")
+    @cache.memoize(timeout=300)  # Cache data for 5 minutes
+    def get_transactions():
+        engine = create_engine(database.DATABASE_URI)
+        df = pd.read_sql("SELECT * FROM transactions", engine)
+        return df
 
-    engine = create_engine(database.DATABASE_URI)
-    df = pd.read_sql("SELECT * FROM transactions", engine)
-    cache.set("transactions", df, timeout=300)  # Cache for 5 minutes
-    return df
+    return get_transactions()

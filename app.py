@@ -1,16 +1,24 @@
+# Third-Party Imports
 from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
+
+# Local Application Imports
 from pages import home, transactions  # Import pages
 from components import navbar  # Import navbar
 from data import database, ynab_calls, data_loader
 from callbacks import register_callbacks  # Import callbacks
-
-from dash.dependencies import Input, Output
+from config import init_cache
 import secrets_rs
 
 # Initialize the app with Dash
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 app.title = "Financial Dashboard"
+
+server = app.server  # Get the Flask server
+
+# Initialize the cache
+init_cache(app.server)
 
 # Define Dash app layout
 app.layout = html.Div([
@@ -49,19 +57,19 @@ register_callbacks(app)
 
 
 if __name__ == "__main__":
-    ynab_client = ynab_calls.YNABClient()
-
-    # Get all budgets
-    budgets = ynab_client.get_budgets()
-
-    # Fetch transactions for a specific budget by name
-    budget_id = secrets_rs.BANANA_STAND_ID
-    if budget_id:
-        ynab_transactions = ynab_client.get_transactions(budget_id)
-        data_loader.store_transactions(ynab_transactions)
-
-    # Fetch accounts for thr budget
-    if budget_id:
-        accounts = ynab_client.get_accounts(budget_id)
-    # Run Dash App
+    # ynab_client = ynab_calls.YNABClient()
+    #
+    # # Get all budgets
+    # budgets = ynab_client.get_budgets()
+    #
+    # # Fetch transactions for a specific budget by name
+    # budget_id = secrets_rs.BANANA_STAND_ID
+    # if budget_id:
+    #     ynab_transactions = ynab_client.get_transactions(budget_id)
+    #     data_loader.store_transactions(ynab_transactions)
+    #
+    # # Fetch accounts for thr budget
+    # if budget_id:
+    #     accounts = ynab_client.get_accounts(budget_id)
+    # # Run Dash App
     app.run_server(debug=True)

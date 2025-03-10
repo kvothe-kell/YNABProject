@@ -1,7 +1,10 @@
+# Third-Party Imports
 from dash import html, dcc
 import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
+
+# Local Application Imports
 from data import database
 
 # Connect to the database
