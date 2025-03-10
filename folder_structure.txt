@@ -1,0 +1,12 @@
+/your_dash_app
+│── app.py                        # Main entry point for Dash app
+│── callbacks.py                   # Stores all Dash callbacks
+│── data/
+│   ├── __init__.py                # Makes `data` a module
+│   ├── database.py                 # SQLAlchemy session & models
+│   ├── ynab_client.py              # YNAB API client class (YNABClient)
+│── pages/
+│   ├── __init__.py                # Makes `pages` a module
+│   ├── transactions.py            # Transactions page with Dash UI
+│── assets/                         # CSS/JS for styling
+│── config.py                       # Stores app configuration (e.g., API keys, database URL)
