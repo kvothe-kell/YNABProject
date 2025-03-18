@@ -43,7 +43,7 @@ def display_page(pathname):
 # Register callbacks separately
 register_callbacks(app)
 
-# def update_graphs(_):
+# def update_graphs(_): NOT USED ANYMORE
 #     # Query data from the Database
 #     df1 = pd.read_sql("SELECT date, SUM(amount) as total FROM transactions GROUP BY date", database.engine)
 #     df2 = pd.read_sql("SELECT category_name, SUM(amount) as total FROM transactions GROUP BY category_name",
@@ -71,5 +71,5 @@ if __name__ == "__main__":
     # # Fetch accounts for thr budget
     # if budget_id:
     #     accounts = ynab_client.get_accounts(budget_id)
-    # # Run Dash App
+    # Run Dash App
     app.run_server(debug=True)
