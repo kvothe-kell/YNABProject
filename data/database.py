@@ -29,7 +29,7 @@ class Transaction(Base):
     category_name: Mapped[str] = mapped_column(String)
 
 
-class Account(Base):
+class Account(Base):  # THIS NEEDS TO BE UPDATED
     __tablename__ = "accounts"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)

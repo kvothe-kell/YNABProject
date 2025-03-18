@@ -21,3 +21,13 @@ def fetch_transactions():
         return df
 
     return get_transactions()
+
+
+def fetch_accounts():
+    @cache.memoize(timeout=300)  # Cache data for 5 minutes
+    def get_accounts():
+        engine = create_engine(database.DATABASE_URI)
+        df = pd.read_sql("SELECT * FROM accounts", engine)
+        return df
+
+    return get_accounts()

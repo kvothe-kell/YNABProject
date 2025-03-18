@@ -1,5 +1,5 @@
 # data_loader.py
-from data.database import SessionLocal, Transaction
+from data.database import SessionLocal, Transaction, Account
 
 
 def store_transactions(transactions):
@@ -24,6 +24,34 @@ def store_transactions(transactions):
         session.commit()
     except Exception as e:
         print(f"Error storing transactions: {e}")
+        session.rollback()
+    finally:
+        session.close()  # Ensure session is always closed
+
+
+def store_accounts(accounts):  # I THINK THIS IS OK
+    session = SessionLocal()  # Create a new DB Session
+    try:
+        for acct in accounts:
+            account_entry = Account(
+                id=acct.id,
+                name=acct.name,
+                type=acct.type,
+                on_budget=acct.on_budget,
+                closed=acct.closed,
+                note=acct.note,
+                balance=acct.balance / 1000,
+                cleared_balance=acct.cleared_balance / 1000,
+                uncleared_balance=acct.uncleared_balance / 1000,
+                transfer_payee_id=acct.transfer_payee_id,
+                direct_import_linked=acct.direct_import_linked,
+                direct_import_in_error=acct.direct_import_in_error,
+                deleted=acct.deleted
+            )
+            session.merge(account_entry)
+        session.commit()
+    except Exception as e:
+        print(f"Error storing accounts: {e}")
         session.rollback()
     finally:
         session.close()  # Ensure session is always closed
