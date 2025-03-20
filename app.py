@@ -57,20 +57,20 @@ register_callbacks(app)
 
 
 if __name__ == "__main__":
-    ynab_client = ynab_calls.YNABClient()
-
-    # Get all budgets
-    budgets = ynab_client.get_budgets()
-
-    # Fetch transactions for a specific budget by name
-    budget_id = secrets_rs.BANANA_STAND_ID
-    if budget_id:
-        ynab_transactions = ynab_client.get_transactions(budget_id)
-        data_loader.store_transactions(ynab_transactions)
-
-    # Fetch accounts for the budget
-    if budget_id:
-        ynab_accounts = ynab_client.get_accounts(budget_id)
-        data_loader.store_accounts(ynab_accounts)
+    # ynab_client = ynab_calls.YNABClient()
+    #
+    # # Get all budgets
+    # budgets = ynab_client.get_budgets()
+    #
+    # # Fetch transactions for a specific budget by name
+    # budget_id = secrets_rs.BANANA_STAND_ID
+    # if budget_id:
+    #     ynab_transactions = ynab_client.get_transactions(budget_id)
+    #     data_loader.store_transactions(ynab_transactions)
+    #
+    # # Fetch accounts for the budget
+    # if budget_id:
+    #     ynab_accounts = ynab_client.get_accounts(budget_id)
+    #     data_loader.store_accounts(ynab_accounts)
     # Run Dash App
     app.run_server(debug=True)

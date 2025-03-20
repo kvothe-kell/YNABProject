@@ -34,6 +34,17 @@ class Account(Base):  # THIS NEEDS TO BE UPDATED
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    on_budget: Mapped[bool] = mapped_column(Boolean)
+    closed: Mapped[bool] = mapped_column(Boolean)
+    note: Mapped[str] = mapped_column(String, nullable=True)
+    balance: Mapped[int] = mapped_column(Integer)
+    cleared_balance: Mapped[int] = mapped_column(Integer)
+    uncleared_balance: Mapped[int] = mapped_column(Integer)
+    transfer_payee_id: Mapped[str | None] = mapped_column(String, nullable=True)  # foreign key?
+    direct_import_linked: Mapped[bool] = mapped_column(Boolean)
+    direct_import_in_error: Mapped[bool] = mapped_column(Boolean)
+    deleted: Mapped[bool] = mapped_column(Boolean)
 
 
 # Initialize database (creates tables if they don't exist)

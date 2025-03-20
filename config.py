@@ -28,6 +28,7 @@ def fetch_accounts():
     def get_accounts():
         engine = create_engine(database.DATABASE_URI)
         df = pd.read_sql("SELECT * FROM accounts", engine)
+        print(f"Accounts query returned {len(df)} rows")  # Debug print
         return df
 
     return get_accounts()

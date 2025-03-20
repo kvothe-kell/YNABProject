@@ -22,8 +22,15 @@ def register_callbacks(app):
         options = [{"label": "All Accounts", "value": "all"}]
 
         if not accounts.empty:
-            account_options = [{"label": row["account_name"], "value": row['account_id']} for _, row in
-                               accounts.iterrows()]
+            # Filter out Deleted Accounts
+            active_accounts = accounts[accounts['deleted'] == False]
+
+            # Sort accounts alphabetically by name
+            sorted_accounts = active_accounts.sort_values('name')
+
+            account_options = [{"label": row["name"], "value": row['id']} for _, row in
+                               sorted_accounts.iterrows()
+                               ]
             options.extend(account_options)
         return options
 
