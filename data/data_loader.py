@@ -4,105 +4,110 @@ from data.database import (
     SubTransaction, AccountBalanceHistory, Budget, MonthBudget
 )
 import datetime
+from contextlib import contextmanager
+
+
+@contextmanager
+def get_db_session():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
 
 
 def store_transactions(transactions):
     """Store transactions from YNAB API into the database"""
-    session = SessionLocal()  # Create a new DB Session
-    try:
-        for txn in transactions:
-            # handle subtransactions
-            subtransactions_data = []
-            if hasattr(txn, 'subtransactions') and txn.subtransactions:
-                for sub_txn in txn.subtransactions:
-                    subtransactions_data.append(SubTransaction(
-                        id=sub_txn.id,
-                        transaction_id=txn.id,
-                        amount=sub_txn.amount / 1000,
-                        memo=sub_txn.memo,
-                        payee_id=sub_txn.payee_id,
-                        category_id=sub_txn.category_id,
-                        transfer_account_id=getattr(sub_txn, 'transfer_account_id', None),
-                        deleted=getattr(sub_txn, 'deleted', False)
-                    ))
-            # Create Main Transaction
-            transaction_entry = Transaction(
-                id=txn.id,
-                date=txn.var_date,
-                amount=txn.amount / 1000,
-                memo=txn.memo,
-                cleared=txn.cleared,
-                approved=txn.approved,
-                account_id=txn.account_id,
-                payee_id=txn.payee_id,
-                category_id=txn.category_id
-            )
-            # Use merge for the main transaction (WTF IS THIS DOING)
-            session.merge(transaction_entry)
-            # For subtransactions check if they exist first
-            for sub_entry in subtransactions_data:
-                existing = session.query(SubTransaction).filter_by(id=sub_entry.id).first()
-                if existing:
-                    # Update existing transaction
-                    for key, value in sub_entry.__dict__.items():
-                        if key != '_sa_instance_state' and key != 'id':
-                            setattr(existing, key, value)
-                else:
-                    session.add(sub_entry)
-
-        session.commit()
-    except Exception as e:
-        print(f"Error storing transactions: {e}")
-        session.rollback()
-    finally:
-        session.close()  # Ensure session is always closed
+    with get_db_session() as session:
+        try:
+            for txn in transactions:
+                # handle subtransactions
+                subtransactions_data = []
+                if hasattr(txn, 'subtransactions') and txn.subtransactions:
+                    for sub_txn in txn.subtransactions:
+                        subtransactions_data.append(SubTransaction(
+                            id=sub_txn.id,
+                            transaction_id=txn.id,
+                            amount=sub_txn.amount / 1000,
+                            memo=sub_txn.memo,
+                            payee_id=sub_txn.payee_id,
+                            category_id=sub_txn.category_id,
+                            transfer_account_id=getattr(sub_txn, 'transfer_account_id', None),
+                            deleted=getattr(sub_txn, 'deleted', False)
+                        ))
+                # Create Main Transaction
+                transaction_entry = Transaction(
+                    id=txn.id,
+                    date=txn.var_date,
+                    amount=txn.amount / 1000,
+                    memo=txn.memo,
+                    cleared=txn.cleared,
+                    approved=txn.approved,
+                    account_id=txn.account_id,
+                    payee_id=txn.payee_id,
+                    category_id=txn.category_id
+                )
+                # Use merge for the main transaction (WTF IS THIS DOING)
+                session.merge(transaction_entry)
+                # For subtransactions check if they exist first
+                for sub_entry in subtransactions_data:
+                    existing = session.query(SubTransaction).filter_by(id=sub_entry.id).first()
+                    if existing:
+                        # Update existing transaction
+                        for key, value in sub_entry.__dict__.items():
+                            if key != '_sa_instance_state' and key != 'id':
+                                setattr(existing, key, value)
+                    else:
+                        session.add(sub_entry)
+        except Exception as e:
+            print(f"Error storing transactions: {e}")
+            raise
 
 
 def store_categories(categories):
     """Store categories from YNAB API into the database"""
-    session = SessionLocal()
-    try:
-        for category_group in categories:
-            group_id = category_group.id
-            group_name = category_group.name
+    with get_db_session() as session:
+        try:
+            for category_group in categories:
+                group_id = category_group.id
+                group_name = category_group.name
 
-            for cat in category_group.categories:
-                category_entry = Category(
-                    id=cat.id,
-                    name=cat.name,
-                    group_id=group_id,
-                    group_name=group_name,
-                    hidden=cat.hidden,
-                    deleted=cat.deleted if hasattr(cat, 'deleted') else False
-                )
-                session.merge(category_entry)
-
-        session.commit()
-    except Exception as e:
-        print(f"Error storing categories: {e}")
-        session.rollback()
-    finally:
-        session.close()
+                for cat in category_group.categories:
+                    category_entry = Category(
+                        id=cat.id,
+                        name=cat.name,
+                        group_id=group_id,
+                        group_name=group_name,
+                        hidden=cat.hidden,
+                        deleted=cat.deleted if hasattr(cat, 'deleted') else False
+                    )
+                    session.merge(category_entry)
+        except Exception as e:
+            print(f"Error storing categories: {e}")
+            raise
 
 
 def store_payees(payees):
     """Store payees from YNAB API into the database"""
-    session = SessionLocal()
-    try:
-        for payee in payees:
-            payee_entry = Payee(
-                id=payee.id,
-                name=payee.name,
-                transfer_account_id=payee.transfer_account_id if hasattr(payee, 'transfer_account_id') else None,
-                deleted=payee.deleted if hasattr(payee, 'deleted') else False
-            )
-            session.merge(payee_entry)
-        session.commit()
-    except Exception as e:
-        print(f"Error storing payees: {e}")
-        session.rollback()
-    finally:
-        session.close()
+    with get_db_session() as session:
+        try:
+            for payee in payees:
+                payee_entry = Payee(
+                    id=payee.id,
+                    name=payee.name,
+                    transfer_account_id=payee.transfer_account_id if hasattr(payee, 'transfer_account_id') else None,
+                    deleted=payee.deleted if hasattr(payee, 'deleted') else False
+                )
+                session.merge(payee_entry)
+            session.commit()
+        except Exception as e:
+            print(f"Error storing payees: {e}")
+            raise
 
 
 def store_accounts(accounts, session=None):
@@ -187,55 +192,53 @@ def store_account_balance_snapshot(account, snapshot_date=None, session=None):
 
 def store_budget(budget_data):
     """Store budget information from YNAB API"""  # NOT SUTE WHJAT THIS DEOSEITHER
-    session = SessionLocal()
-    try:
-        # Store main budget info
-        budget_entry = Budget(
-            id=budget_data.id,
-            name=budget_data.name,
-            last_modified_on=budget_data.last_modified_on,
-            first_month=budget_data.first_month,
-            last_month=budget_data.last_month,
-            currency_format=str(budget_data.currency_format) if hasattr(budget_data, 'currency_format') else None
-        )
-        session.merge(budget_entry)
-        # Store month budget data if available
-        if hasattr(budget_data, 'months') and budget_data.months:
-            for month_data in budget_data.months:
-                month_str = month_data.month
+    with get_db_session() as session:
+        try:
+            # Store main budget info
+            budget_entry = Budget(
+                id=budget_data.id,
+                name=budget_data.name,
+                last_modified_on=budget_data.last_modified_on,
+                first_month=budget_data.first_month,
+                last_month=budget_data.last_month,
+                currency_format=str(budget_data.currency_format) if hasattr(budget_data, 'currency_format') else None
+            )
+            session.merge(budget_entry)
+            # Store month budget data if available
+            if hasattr(budget_data, 'months') and budget_data.months:
+                for month_data in budget_data.months:
+                    month_str = month_data.month
 
-                # Process each category in the month
-                if hasattr(month_data, 'categories') and month_data.categories:
-                    for cat in month_data.categories:
-                        month_budget_entry = MonthBudget(
-                            budget_id=budget_data.id,
-                            month=month_str,
-                            category_id=cat.id,
-                            budgeted=cat.budgeted / 1000,
-                            activity=cat.activity / 1000,
-                            balance=cat.balance / 1000
-                        )
+                    # Process each category in the month
+                    if hasattr(month_data, 'categories') and month_data.categories:
+                        for cat in month_data.categories:
+                            month_budget_entry = MonthBudget(
+                                budget_id=budget_data.id,
+                                month=month_str,
+                                category_id=cat.id,
+                                budgeted=cat.budgeted / 1000,
+                                activity=cat.activity / 1000,
+                                balance=cat.balance / 1000
+                            )
 
-                        # Check if entry exists
-                        existing = session.query(MonthBudget).filter_by(
-                            budget_id=budget_data.id,
-                            month=month_str,
-                            category_id=cat.id
-                        ).first()
+                            # Check if entry exists
+                            existing = session.query(MonthBudget).filter_by(
+                                budget_id=budget_data.id,
+                                month=month_str,
+                                category_id=cat.id
+                            ).first()
 
-                        if existing:
-                            # Update existing entry
-                            existing.budgeted = cat.budgeted / 1000
-                            existing.activity = cat.activity / 1000
-                            existing.balance = cat.balance / 1000
-                        else:
-                            # Add new entry
-                            session.add(month_budget_entry)
-        session.commit()
-    except Exception as e:
-        print(f"Error storing budget data: {e}")
-    finally:
-        session.close()
+                            if existing:
+                                # Update existing entry
+                                existing.budgeted = cat.budgeted / 1000
+                                existing.activity = cat.activity / 1000
+                                existing.balance = cat.balance / 1000
+                            else:
+                                # Add new entry
+                                session.add(month_budget_entry)
+        except Exception as e:
+            print(f"Error storing budget data: {e}")
+            raise
 
 
 # def capture_month_end_balances():
