@@ -43,34 +43,29 @@ def display_page(pathname):
 # Register callbacks separately
 register_callbacks(app)
 
-# def update_graphs(_): NOT USED ANYMORE
-#     # Query data from the Database
-#     df1 = pd.read_sql("SELECT date, SUM(amount) as total FROM transactions GROUP BY date", database.engine)
-#     df2 = pd.read_sql("SELECT category_name, SUM(amount) as total FROM transactions GROUP BY category_name",
-#                       database.engine)
-#
-#     # Create figures
-#     fig1 = px.line(df1, x="date", y="total", title="Total Amount Over Time")
-#     fig2 = px.bar(df2, x="category_name", y="total", title="Spending by Category")
-#
-#     return fig1, fig2
-
-
 if __name__ == "__main__":
-    # ynab_client = ynab_calls.YNABClient()
-    #
-    # # Get all budgets
-    # budgets = ynab_client.get_budgets()
-    #
-    # # Fetch transactions for a specific budget by name
-    # budget_id = secrets_rs.BANANA_STAND_ID
-    # if budget_id:
-    #     ynab_transactions = ynab_client.get_transactions(budget_id)
-    #     data_loader.store_transactions(ynab_transactions)
-    #
-    # # Fetch accounts for the budget
-    # if budget_id:
-    #     ynab_accounts = ynab_client.get_accounts(budget_id)
-    #     data_loader.store_accounts(ynab_accounts)
-    # Run Dash App
+    # Import all data from YNAB
+    budget_id = secrets_rs.BANANA_STAND_ID
+    if budget_id:
+        # Option 1: Sync everything
+        data_loader.sync_all_data(budget_id)
+
+        # # Option 2: Or sync individual entities
+        # ynab_client = ynab_calls.YNABClient()
+        #
+        # # Get and store categories
+        # categories = ynab_client.get_categories(budget_id)
+        # data_loader.store_categories(categories)
+        #
+        # # Get and store payees
+        # payees = ynab_client.get_payees(budget_id)
+        # data_loader.store_payees(payees)
+        #
+        # # Get and store accounts and their current balances
+        # accounts = ynab_client.get_accounts(budget_id)
+        # data_loader.store_accounts(accounts)
+        #
+        # # Get and store transactions
+        # transactions = ynab_client.get_transactions(budget_id)
+        # data_loader.store_transactions(transactions)
     app.run_server(debug=True)
