@@ -1,12 +1,13 @@
 # Third-Party Imports
-from dash import Output, Input
 import pandas as pd
 import plotly.express as px
+from dash import Input, Output
 from sqlalchemy import create_engine
+
+from config import fetch_accounts, fetch_transactions
 
 # Local Application Imports
 from data import database
-from config import fetch_transactions, fetch_accounts
 
 # Connect to the database
 engine = create_engine(database.DATABASE_URI)
@@ -15,71 +16,99 @@ engine = create_engine(database.DATABASE_URI)
 def register_callbacks(app):
     @app.callback(
         Output("account_dropdown", "options"),
-        Input("account_dropdown", "id")  # Dummy input to trigger on page load
+        Input("account_dropdown", "id"),  # Dummy input to trigger on page load
     )
     def populate_account_dropdown(_):
         accounts = fetch_accounts()
         options = [{"label": "All Accounts", "value": "all"}]
 
-        if not accounts.empty:
+        if accounts is not None and not accounts.empty:
             # Filter out Deleted Accounts
-            active_accounts = accounts[accounts['deleted'] == False]
+            active_accounts = accounts[accounts["deleted"] == False]
 
             # Sort accounts alphabetically by name
-            sorted_accounts = active_accounts.sort_values('name')
+            sorted_accounts = active_accounts.sort_values("name")
 
-            account_options = [{"label": row["name"], "value": row['id']} for _, row in
-                               sorted_accounts.iterrows()
-                               ]
+            account_options = [
+                {"label": row["name"], "value": row["id"]}
+                for _, row in sorted_accounts.iterrows()
+            ]
             options.extend(account_options)
         return options
 
     @app.callback(
         Output("transaction-graph", "figure"),
-        Input("transaction-graph", "id")  # Dummy input to trigger on page load
+        Input("transaction-graph", "id"),  # Dummy input to trigger on page load
     )
     def update_transaction_graph(_):
-        df = fetch_transactions()  # Use cached function instead of querying the DB directly
+        df_all_transactions = fetch_transactions()  # get full cached DataFrame
 
-        if df is None or df.empty:
+        if df_all_transactions is None or df_all_transactions.empty:
             return px.line(title="No Data Available")
 
-        df = pd.read_sql("SELECT date, SUM(amount) as total FROM transactions GROUP BY date", engine)
-        fig = px.line(df, x="date", y="total", title="Transaction Trends")
+        # Ensure 'date' column in the datetime format for proper grouping/sorting
+        df_all_transactions["date"] = pd.to_datetime(df_all_transactions["date"])
+
+        # Perform grouping and sum with pandas
+        df_grouped = df_all_transactions.groupby("date")["amount"].sum().reset_index()
+        df_grouped = df_grouped.rename(columns={"amount": "total"}).sort_values(
+            by="date"
+        )
+
+        if df_grouped.empty:
+            return px.line(title="No Transaction Data to Display Trends")
+
+        fig = px.line(df_grouped, x="date", y="total", title="Transaction Trends")
         return fig
 
-    @app.callback(
-        Output("summary-graph", "figure"),
-        Input("account_dropdown", "value")
-    )
+    @app.callback(Output("summary-graph", "figure"), Input("account_dropdown", "value"))
     def update_summary_graph(selected_account):
-        # Get all transactions (cached)
-        transactions = fetch_transactions()
+        base_query_select = """
+            SELECT
+                c.name AS category_name, 
+                SUM(t.amount) as total
+            FROM
+                transactions t
+            LEFT JOIN
+                categories c ON t.category_id = c.id
+        """
+        group_order_limit = """
+            GROUP BY
+                c.name
+            ORDER BY
+                total DESC
+            LIMIT 10
+        """
 
-        if transactions is None or transactions.empty:
-            return px.bar(title="No Data Available")
+        # if transactions is None or transactions.empty:
+        #     return px.bar(title="No Data Available")
 
-        # Filter by account if not "all"
         if selected_account and selected_account != "all":
-            query = f'''
-            SELECT category_name, SUM(amount) as total
-            FROM transactions
-            WHERE account_id = "{selected_account}"
-            GROUP BY category_name
-            ORDER By total DESC
-            LIMIT 10
-            '''
+            query = f"""
+            {base_query_select}
+            WHERE
+                t.account_id = "{selected_account}"
+            {group_order_limit}
+            """
         else:
-            query = '''
-            SELECT category_name, SUM(amount) as total 
-            FROM transactions 
-            GROUP BY category_name 
-            ORDER BY total DESC 
-            LIMIT 10
-            '''
-        # Example: Get a summary of spending by category
+            query = f"""
+            {base_query_select}
+            {group_order_limit}
+            """
         df_summary = pd.read_sql(query, engine)
-        title = F"Top Spending Categories" + (
-            f" for Selected Account" if selected_account and selected_account != "all" else "")
+
+        if df_summary.empty:
+            title = "No Data for Summary Graph"
+            if selected_account and selected_account != "all":
+                # You might want to fetch account name to make title more specific
+                title += f" for Selected Account"
+            return px.bar(title=title)
+
+        title = "Top 10 Spending Categories"
+        if selected_account and selected_account != "all":
+            # Ideally, fetch account name from `accounts` table using `selected_account` ID
+            # For now, just indicating a filter is active.
+            title += " (Filtered by Account)"
+
         fig = px.bar(df_summary, x="category_name", y="total", title=title)
         return fig
