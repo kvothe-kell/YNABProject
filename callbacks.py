@@ -1,8 +1,11 @@
+# Standard Library Imports
+import textwrap
+
 # Third-Party Imports
 import pandas as pd
 import plotly.express as px
 from dash import Input, Output
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 from config import fetch_accounts, fetch_transactions
 
@@ -63,39 +66,50 @@ def register_callbacks(app):
 
     @app.callback(Output("summary-graph", "figure"), Input("account_dropdown", "value"))
     def update_summary_graph(selected_account):
-        base_query_select = """
+        base_query = textwrap.dedent(
+            """
             SELECT
-                c.name AS category_name, 
+                c.name AS category_name,
                 SUM(t.amount) as total
             FROM
                 transactions t
             LEFT JOIN
                 categories c ON t.category_id = c.id
-        """
-        group_order_limit = """
+            WHERE
+                t.category_id IS NOT NULL
+                AND c.name != 'Ready to Assign'
+            """
+        )
+
+        group_order_limit = textwrap.dedent(
+            """
             GROUP BY
                 c.name
             ORDER BY
                 total DESC
             LIMIT 10
-        """
-
-        # if transactions is None or transactions.empty:
-        #     return px.bar(title="No Data Available")
+            """
+        )
 
         if selected_account and selected_account != "all":
-            query = f"""
-            {base_query_select}
-            WHERE
-                t.account_id = "{selected_account}"
-            {group_order_limit}
-            """
+            query = textwrap.dedent(
+                f"""
+                {base_query}
+                AND t.account_id = :account_id
+                {group_order_limit}
+                """
+            )
+            params = {"account_id": selected_account}
         else:
-            query = f"""
-            {base_query_select}
-            {group_order_limit}
-            """
-        df_summary = pd.read_sql(query, engine)
+            query = textwrap.dedent(
+                f"""
+                {base_query}
+                {group_order_limit}
+                """
+            )
+            params = {}
+
+        df_summary = pd.read_sql(text(query), engine, params=params)
 
         if df_summary.empty:
             title = "No Data for Summary Graph"
