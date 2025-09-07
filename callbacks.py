@@ -1,19 +1,10 @@
-# Standard Library Imports
-import textwrap
-
 # Third-Party Imports
 import pandas as pd
 import plotly.express as px
 from dash import Input, Output
-from sqlalchemy import create_engine, text
 
 from config import fetch_accounts, fetch_transactions
-
-# Local Application Imports
-from data import database
-
-# Connect to the database
-engine = create_engine(database.DATABASE_URI)
+from data.queries import fetch_summary
 
 
 def register_callbacks(app):
@@ -66,52 +57,7 @@ def register_callbacks(app):
 
     @app.callback(Output("summary-graph", "figure"), Input("account_dropdown", "value"))
     def update_summary_graph(selected_account):
-        base_query = textwrap.dedent(
-            """
-            SELECT
-                c.name AS category_name,
-                SUM(COALESCE(st.amount, t.amount)) AS total
-            FROM
-                transactions t
-            LEFT JOIN
-                subtransactions st ON st.transaction_id = t.id
-            LEFT JOIN
-                categories c ON COALESCE(st.category_id, t.category_id) = c.id
-            WHERE
-                c.name IS NOT NULL
-                AND c.name NOT LIKE '%Ready to Assign%'
-            """
-        )
-
-        group_order_limit = textwrap.dedent(
-            """
-            GROUP BY
-                c.name
-            ORDER BY
-                total DESC
-            LIMIT 10
-            """
-        )
-
-        if selected_account and selected_account != "all":
-            query = textwrap.dedent(
-                f"""
-                {base_query}
-                AND t.account_id = :account_id
-                {group_order_limit}
-                """
-            )
-            params = {"account_id": selected_account}
-        else:
-            query = textwrap.dedent(
-                f"""
-                {base_query}
-                {group_order_limit}
-                """
-            )
-            params = {}
-
-        df_summary = pd.read_sql(text(query), engine, params=params)
+        df_summary = fetch_summary(selected_account)
 
         if df_summary.empty:
             title = "No Data for Summary Graph"
@@ -126,5 +72,11 @@ def register_callbacks(app):
             # For now, just indicating a filter is active.
             title += " (Filtered by Account)"
 
-        fig = px.bar(df_summary, x="category_name", y="total", title=title)
+        fig = px.bar(
+            df_summary,
+            x="category_name",
+            y="total",
+            labels={"total": "Total Amount", "category_name": "Category"},
+            title=title,
+        )
         return fig
