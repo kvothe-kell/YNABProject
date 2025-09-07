@@ -70,14 +70,16 @@ def register_callbacks(app):
             """
             SELECT
                 c.name AS category_name,
-                SUM(t.amount) as total
+                SUM(COALESCE(st.amount, t.amount)) AS total
             FROM
                 transactions t
             LEFT JOIN
-                categories c ON t.category_id = c.id
+                subtransactions st ON st.transaction_id = t.id
+            LEFT JOIN
+                categories c ON COALESCE(st.category_id, t.category_id) = c.id
             WHERE
-                t.category_id IS NOT NULL
-                AND c.name != 'Ready to Assign'
+                c.name IS NOT NULL
+                AND c.name NOT LIKE '%Ready to Assign%'
             """
         )
 
