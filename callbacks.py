@@ -8,6 +8,14 @@ from data.queries import fetch_summary
 
 
 def register_callbacks(app):
+    """Attach all Dash backs to the given application instance.
+    Args:
+        app (dash.Dash): Dash application to whcih callbacsk are registered.
+
+    Returns:
+        None
+    """
+
     @app.callback(
         Output("account_dropdown", "options"),
         Input("account_dropdown", "id"),  # Dummy input to trigger on page load
@@ -55,15 +63,24 @@ def register_callbacks(app):
         fig = px.line(df_grouped, x="date", y="total", title="Transaction Trends")
         return fig
 
-    @app.callback(Output("summary-graph", "figure"), Input("account_dropdown", "value"))
-    def update_summary_graph(selected_account):
-        df_summary = fetch_summary(selected_account)
+    @app.callback(
+        Output("summary-graph", "figure"),
+        [
+            Input("account_dropdown", "value"),
+            Input("date_range", "start_date"),
+            Input("date_range", "end_date"),
+        ],
+    )
+    def update_summary_graph(selected_account, start_date, end_date):
+        start = pd.to_datetime(start_date).date() if start_date else None
+        end = pd.to_datetime(end_date).date() if end_date else None
+        df_summary = fetch_summary(selected_account, start, end)
 
         if df_summary.empty:
             title = "No Data for Summary Graph"
             if selected_account and selected_account != "all":
                 # You might want to fetch account name to make title more specific
-                title += f" for Selected Account"
+                title += " for Selected Account"
             return px.bar(title=title)
 
         title = "Top 10 Spending Categories"

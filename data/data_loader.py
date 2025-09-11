@@ -1,10 +1,18 @@
 # data_loader.py
-from data.database import (
-    SessionLocal, Transaction, Account, Category, Payee,
-    SubTransaction, AccountBalanceHistory, Budget, MonthBudget
-)
 import datetime
 from contextlib import contextmanager
+
+from data.database import (
+    Account,
+    AccountBalanceHistory,
+    Budget,
+    Category,
+    MonthBudget,
+    Payee,
+    SessionLocal,
+    SubTransaction,
+    Transaction,
+)
 
 
 @contextmanager
@@ -28,39 +36,45 @@ def store_transactions(transactions):
             for txn in transactions:
                 # handle subtransactions
                 subtransactions_data = []
-                if hasattr(txn, 'subtransactions') and txn.subtransactions:
+                if hasattr(txn, "subtransactions") and txn.subtransactions:
                     for sub_txn in txn.subtransactions:
-                        subtransactions_data.append(SubTransaction(
-                            id=sub_txn.id,
-                            transaction_id=txn.id,
-                            amount=sub_txn.amount / 1000,
-                            memo=sub_txn.memo,
-                            payee_id=sub_txn.payee_id,
-                            category_id=sub_txn.category_id,
-                            transfer_account_id=getattr(sub_txn, 'transfer_account_id', None),
-                            deleted=getattr(sub_txn, 'deleted', False)
-                        ))
+                        subtransactions_data.append(
+                            SubTransaction(
+                                id=sub_txn.id,
+                                transaction_id=txn.id,
+                                amount=sub_txn.amount / 1000,
+                                memo=sub_txn.memo,
+                                payee_id=sub_txn.payee_id,
+                                category_id=sub_txn.category_id,
+                                transfer_account_id=getattr(
+                                    sub_txn, "transfer_account_id", None
+                                ),
+                                deleted=getattr(sub_txn, "deleted", False),
+                            )
+                        )
                 # Create Main Transaction
                 transaction_entry = Transaction(
                     id=txn.id,
-                    date=txn.var_date,
+                    date=txn.date,
                     amount=txn.amount / 1000,
                     memo=txn.memo,
                     cleared=txn.cleared,
                     approved=txn.approved,
                     account_id=txn.account_id,
                     payee_id=txn.payee_id,
-                    category_id=txn.category_id
+                    category_id=txn.category_id,
                 )
-                # Use merge for the main transaction (WTF IS THIS DOING)
+                # Merge to insert or update transaction
                 session.merge(transaction_entry)
                 # For subtransactions check if they exist first
                 for sub_entry in subtransactions_data:
-                    existing = session.query(SubTransaction).filter_by(id=sub_entry.id).first()
+                    existing = (
+                        session.query(SubTransaction).filter_by(id=sub_entry.id).first()
+                    )
                     if existing:
                         # Update existing transaction
                         for key, value in sub_entry.__dict__.items():
-                            if key != '_sa_instance_state' and key != 'id':
+                            if key != "_sa_instance_state" and key != "id":
                                 setattr(existing, key, value)
                     else:
                         session.add(sub_entry)
@@ -84,7 +98,7 @@ def store_categories(categories):
                         group_id=group_id,
                         group_name=group_name,
                         hidden=cat.hidden,
-                        deleted=cat.deleted if hasattr(cat, 'deleted') else False
+                        deleted=cat.deleted if hasattr(cat, "deleted") else False,
                     )
                     session.merge(category_entry)
         except Exception as e:
@@ -100,8 +114,12 @@ def store_payees(payees):
                 payee_entry = Payee(
                     id=payee.id,
                     name=payee.name,
-                    transfer_account_id=payee.transfer_account_id if hasattr(payee, 'transfer_account_id') else None,
-                    deleted=payee.deleted if hasattr(payee, 'deleted') else False
+                    transfer_account_id=(
+                        payee.transfer_account_id
+                        if hasattr(payee, "transfer_account_id")
+                        else None
+                    ),
+                    deleted=payee.deleted if hasattr(payee, "deleted") else False,
                 )
                 session.merge(payee_entry)
             session.commit()
@@ -131,7 +149,7 @@ def store_accounts(accounts, session=None):
                 transfer_payee_id=acct.transfer_payee_id,
                 direct_import_linked=acct.direct_import_linked,
                 direct_import_in_error=acct.direct_import_in_error,
-                deleted=acct.deleted
+                deleted=acct.deleted,
             )
             session.merge(account_entry)
 
@@ -159,10 +177,11 @@ def store_account_balance_snapshot(account, snapshot_date=None, session=None):
 
     try:
         # Check if we already have a snapshot for this account/date
-        existing = session.query(AccountBalanceHistory).filter_by(
-            account_id=account.id,
-            date=snapshot_date
-        ).first()
+        existing = (
+            session.query(AccountBalanceHistory)
+            .filter_by(account_id=account.id, date=snapshot_date)
+            .first()
+        )
 
         if existing:
             # Update existing Snapshot
@@ -176,7 +195,7 @@ def store_account_balance_snapshot(account, snapshot_date=None, session=None):
                 date=snapshot_date,
                 balance=account.balance / 1000,
                 cleared_balance=account.cleared_balance / 1000,
-                uncleared_balance=account.uncleared_balance / 1000
+                uncleared_balance=account.uncleared_balance / 1000,
             )
             session.add(history_entry)
         if close_session:
@@ -201,16 +220,20 @@ def store_budget(budget_data):
                 last_modified_on=budget_data.last_modified_on,
                 first_month=budget_data.first_month,
                 last_month=budget_data.last_month,
-                currency_format=str(budget_data.currency_format) if hasattr(budget_data, 'currency_format') else None
+                currency_format=(
+                    str(budget_data.currency_format)
+                    if hasattr(budget_data, "currency_format")
+                    else None
+                ),
             )
             session.merge(budget_entry)
             # Store month budget data if available
-            if hasattr(budget_data, 'months') and budget_data.months:
+            if hasattr(budget_data, "months") and budget_data.months:
                 for month_data in budget_data.months:
                     month_str = month_data.month
 
                     # Process each category in the month
-                    if hasattr(month_data, 'categories') and month_data.categories:
+                    if hasattr(month_data, "categories") and month_data.categories:
                         for cat in month_data.categories:
                             month_budget_entry = MonthBudget(
                                 budget_id=budget_data.id,
@@ -218,15 +241,19 @@ def store_budget(budget_data):
                                 category_id=cat.id,
                                 budgeted=cat.budgeted / 1000,
                                 activity=cat.activity / 1000,
-                                balance=cat.balance / 1000
+                                balance=cat.balance / 1000,
                             )
 
                             # Check if entry exists
-                            existing = session.query(MonthBudget).filter_by(
-                                budget_id=budget_data.id,
-                                month=month_str,
-                                category_id=cat.id
-                            ).first()
+                            existing = (
+                                session.query(MonthBudget)
+                                .filter_by(
+                                    budget_id=budget_data.id,
+                                    month=month_str,
+                                    category_id=cat.id,
+                                )
+                                .first()
+                            )
 
                             if existing:
                                 # Update existing entry
@@ -269,6 +296,7 @@ def store_budget(budget_data):
 #             store_account_balance_snapshot(account, snapshot_date)
 #
 #         print(f"Captured balance snapshots for {len(accounts)} accounts as of {snapshot_date}")
+
 
 def sync_all_data(budget_id):
     """
