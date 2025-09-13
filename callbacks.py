@@ -5,7 +5,11 @@ import plotly.graph_objects as go
 from dash import Input, Output
 
 from config import fetch_accounts, fetch_transactions
-from data.queries import fetch_net_worth_history, fetch_summary
+from data.queries import (
+    fetch_net_worth_date_range,
+    fetch_net_worth_history,
+    fetch_summary,
+)
 
 
 def register_callbacks(app):
@@ -100,13 +104,25 @@ def register_callbacks(app):
         return fig
 
     @app.callback(
-        Output("net-worth-graph", "figure"),
-        Input("net-worth-graph", "id"),
+        [Output("nw_date_range", "start_date"), Output("nw_date_range", "end_date")],
+        Input("net-worth-graph", "id"),  # fires on first render
+        prevent_initial_call=False,
     )
-    def update_net_worth_graph(_):
-        df_net = fetch_net_worth_history()
+    def init_nw_bounds(_):
+        min_d, max_d = fetch_net_worth_date_range()
+        return min_d, max_d
+
+    # B) Redraw the graph whenever the picker changes
+    @app.callback(
+        Output("net-worth-graph", "figure"),
+        [Input("nw_date_range", "start_date"), Input("nw_date_range", "end_date")],
+    )
+    def update_net_worth_graph(start_date, end_date):
+        df_net = fetch_net_worth_history(start_date, end_date)
         if df_net is None:
             return px.bar(title="No Net Worth Data")
+
+        df_net["month"] = pd.to_datetime(df_net["month"])
 
         fig = go.Figure()
         fig.add_bar(
