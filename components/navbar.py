@@ -14,6 +14,7 @@ def create_navbar():
             dbc.NavItem(
                 dcc.Link("Transactions", href="/transactions", className="nav-link")
             ),
+            dbc.NavItem(dcc.Link("Net Worth", href="net worth", className="nav-link")),
         ],
         brand="My Dashboard",
         color="dark",

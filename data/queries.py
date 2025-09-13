@@ -34,7 +34,7 @@ def _get_txn_bounds():
 
 def fetch_transaction_date_range():
     """Return (min_date, max_date) as ISO strings. Call this from a callback."""
-    return _get_txn_bounds
+    return _get_txn_bounds()
 
 
 def fetch_summary(selected_account=None, start_date=None, end_date=None):
@@ -91,3 +91,50 @@ def fetch_summary(selected_account=None, start_date=None, end_date=None):
         return df
 
     return get_summary(selected_account, start_date, end_date)
+
+
+def _get_net_worth_history():
+    """Return monthly net worth data with positive, negative, and net balances."""
+    dialect = engine.dialect.name  # 'sqlite', 'postgresql', etc.
+
+    if dialect == "sqlite":
+        sql = text(
+            """
+            SELECT
+                strftime('%Y-%m', date) AS month,
+                SUM(CASE WHEN balance >= 0 THEN balance ELSE 0 END) AS positive_balances,
+                SUM(CASE WHEN balance <  0 THEN balance ELSE 0 END) AS negative_balances
+            FROM account_balance_history
+            GROUP BY month
+            ORDER BY month
+        """
+        )
+    else:
+        # Postgres and others
+        sql = text(
+            """
+            SELECT
+                to_char(date_trunc('month', date), 'YYYY-MM') AS month,
+                SUM(CASE WHEN balance >= 0 THEN balance ELSE 0 END) AS positive_balances,
+                SUM(CASE WHEN balance <  0 THEN balance ELSE 0 END) AS negative_balances
+            FROM account_balance_history
+            GROUP BY 1
+            ORDER BY 1
+        """
+        )
+
+    df = pd.read_sql(sql, engine)
+    if df.empty:
+        return df
+
+    # Ensure consistent ordering & types
+    df["month"] = pd.to_datetime(df["month"], format="%Y-%m")
+    df = df.sort_values("month").reset_index(drop=True)
+
+    # Net worth = pos + neg (neg should already be <= 0)
+    df["net_worth"] = df["positive_balances"] + df["negative_balances"]
+    return df
+
+
+def fetch_net_worth_history():
+    return _get_net_worth_history()  # <-- CALL it

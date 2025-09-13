@@ -1,4 +1,5 @@
 # Third-Party Imports
+import dash
 import dash_bootstrap_components as dbc
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
@@ -10,15 +11,16 @@ from config import init_cache
 from data import data_loader, database, ynab_calls
 
 # Local Application Imports
-from pages import home, transactions  # Import pages
+# from pages import home, transactions  # Import pages
 
 # Initialize the app with Dash
 app = Dash(
     __name__,
+    use_pages=True,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
 )
-app.title = "Financial Dashboard"
+# app.title = "Financial Dashboard"
 
 server = app.server  # Get the Flask server
 
@@ -28,20 +30,34 @@ init_cache(app.server)
 # Define Dash app layout
 app.layout = html.Div(
     [
-        navbar.create_navbar(),  # Navbar at the top
-        dcc.Location(id="url", refresh=False),  # Tracks page changes
-        html.Div(id="page-content"),  # Page content updates dynamically
+        # Simple navbar built from page registry
+        html.Nav(
+            [
+                dcc.Link(p["name"], href=p["path"], style={"marginRight": 16})
+                for p in dash.page_registry.values()
+            ],
+            style={"marginBottom": 24},
+        ),
+        dash.page_container,
     ]
 )
 
+# app.layout = html.Div(
+#     [
+#         navbar.create_navbar(),  # Navbar at the top
+#         dcc.Location(id="url", refresh=False),  # Tracks page changes
+#         html.Div(id="page-content"),  # Page content updates dynamically
+#     ]
+# )
 
-# Handle page routing
-@app.callback(Output("page-content", "children"), Input("url", "pathname"))
-def display_page(pathname):
-    if pathname == "/transactions":
-        return transactions.layout
-    else:
-        return home.layout
+
+# # Handle page routing
+# @app.callback(Output("page-content", "children"), Input("url", "pathname"))
+# def display_page(pathname):
+#     if pathname == "/transactions":
+#         return transactions.layout
+#     else:
+#         return home.layout
 
 
 # Register callbacks separately
@@ -72,4 +88,4 @@ if __name__ == "__main__":
         # # Get and store transactions
         # transactions = ynab_client.get_transactions(budget_id)
         # data_loader.store_transactions(transactions)
-        app.run_server(debug=True)
+        app.run(debug=True)

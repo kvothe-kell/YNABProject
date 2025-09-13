@@ -1,10 +1,11 @@
 # Third-Party Imports
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from dash import Input, Output
 
 from config import fetch_accounts, fetch_transactions
-from data.queries import fetch_summary
+from data.queries import fetch_net_worth_history, fetch_summary
 
 
 def register_callbacks(app):
@@ -95,5 +96,37 @@ def register_callbacks(app):
             y="total",
             labels={"total": "Total Amount", "category_name": "Category"},
             title=title,
+        )
+        return fig
+
+    @app.callback(
+        Output("net-worth-graph", "figure"),
+        Input("net-worth-graph", "id"),
+    )
+    def update_net_worth_graph(_):
+        df_net = fetch_net_worth_history()
+        if df_net is None:
+            return px.bar(title="No Net Worth Data")
+
+        fig = go.Figure()
+        fig.add_bar(
+            x=df_net["month"], y=df_net["positive_balances"], name="Postive Balances"
+        )
+        fig.add_bar(
+            x=df_net["month"], y=df_net["negative_balances"], name="Postive Balances"
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_net["month"],
+                y=df_net["net_worth"],
+                name="Net Worth",
+                mode="lines+markers",
+            )
+        )
+        fig.update_layout(
+            barmode="relative",
+            title="Net Worth Over Time",
+            xaxis_title="Month",
+            yaxis_title="Amount",
         )
         return fig

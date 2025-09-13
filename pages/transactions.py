@@ -1,7 +1,8 @@
 # Third-Party Imports
-from dash import html, dcc
+import dash
 import pandas as pd
 import plotly.express as px
+from dash import dcc, html
 from sqlalchemy import create_engine
 
 # Local Application Imports
@@ -16,7 +17,6 @@ def get_transaction_data():
     return pd.read_sql(query, engine)
 
 
-layout = html.Div([
-    html.H1("Transactions"),
-    dcc.Graph(id="transaction-graph")
-])
+dash.register_page(__name__, path="/transactions", name="Transactions", order=1)
+
+layout = html.Div([html.H1("Transactions"), dcc.Graph(id="transaction-graph")])
