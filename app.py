@@ -2,11 +2,9 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import Dash, dcc, html
-from dash.dependencies import Input, Output
 
 import secrets_rs
 from callbacks import register_callbacks  # Import callbacks
-from components import navbar  # Import navbar
 from config import init_cache
 from data import data_loader, database, ynab_calls
 
@@ -41,24 +39,6 @@ app.layout = html.Div(
         dash.page_container,
     ]
 )
-
-# app.layout = html.Div(
-#     [
-#         navbar.create_navbar(),  # Navbar at the top
-#         dcc.Location(id="url", refresh=False),  # Tracks page changes
-#         html.Div(id="page-content"),  # Page content updates dynamically
-#     ]
-# )
-
-
-# # Handle page routing
-# @app.callback(Output("page-content", "children"), Input("url", "pathname"))
-# def display_page(pathname):
-#     if pathname == "/transactions":
-#         return transactions.layout
-#     else:
-#         return home.layout
-
 
 # Register callbacks separately
 register_callbacks(app)
