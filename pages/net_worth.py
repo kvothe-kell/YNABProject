@@ -2,6 +2,8 @@
 import dash
 from dash import dcc, html
 
+from callbacks import net_worth
+
 dash.register_page(__name__, path="/net-worth", name="Net Worth", order=2)
 
 layout = html.Div(

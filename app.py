@@ -4,7 +4,6 @@ import dash_bootstrap_components as dbc
 from dash import Dash, dcc, html
 
 import secrets_rs
-from callbacks import register_callbacks  # Import callbacks
 from config import init_cache
 from data import data_loader, database, ynab_calls
 
@@ -41,7 +40,7 @@ app.layout = html.Div(
 )
 
 # Register callbacks separately
-register_callbacks(app)
+from callbacks import net_worth, summary, transactions, waterfall
 
 if __name__ == "__main__":
     # Import all data from YNAB

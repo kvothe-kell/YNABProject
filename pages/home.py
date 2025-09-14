@@ -1,6 +1,8 @@
 import dash
 from dash import dcc, html
 
+from callbacks import summary
+
 dash.register_page(__name__, path="/", name="Home", order=0)
 
 layout = html.Div(

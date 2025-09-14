@@ -2,6 +2,8 @@
 import dash
 from dash import dcc, html
 
+from callbacks import waterfall
+
 dash.register_page(__name__, path="/waterfall", name="Waterfall", order=3)
 
 # Layout definition

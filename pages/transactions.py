@@ -5,6 +5,8 @@ import plotly.express as px
 from dash import dcc, html
 from sqlalchemy import create_engine
 
+from callbacks import transactions
+
 # Local Application Imports
 from data import database
 
