@@ -17,6 +17,6 @@ def get_transaction_data():
     return pd.read_sql(query, engine)
 
 
-dash.register_page(__name__, path="/transactions", name="Transactions", order=1)
+dash.register_page(__name__, path="/transactions", name="Transactions", order=4)
 
 layout = html.Div([html.H1("Transactions"), dcc.Graph(id="transaction-graph")])
