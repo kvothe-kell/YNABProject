@@ -10,3 +10,38 @@
 │   ├── transactions.py            # Transactions page with Dash UI
 │── assets/                         # CSS/JS for styling
 │── config.py                       # Stores app configuration (e.g., API keys, database URL)
+
+
+YNABProject/
+├── app.py
+├── backfill_account_balance.py
+├── callbacks/
+│   ├── __init__.py
+│   ├── summary.py
+│   ├── transactions.py
+│   ├── net_worth.py
+│   └── waterfall.py
+├── components/
+│   ├── __init__.py
+│   ├── navbar.py
+│   └── sidebar.py
+├── data/
+│   ├── __init__.py
+│   ├── data_loader.py
+│   ├── database.py
+│   ├── ynab_calls.py
+│   └── queries/
+│       ├── __init__.py
+│       ├── accounts.py
+│       ├── net_worth.py
+│       └── transactions.py
+├── pages/
+│   ├── __init__.py
+│   ├── home.py
+│   ├── net_worth.py
+│   ├── transactions.py
+│   └── waterfall.py
+├── config.py
+├── requirements.txt
+├── folder_structure.txt
+└── .gitignore
